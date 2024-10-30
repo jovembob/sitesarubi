@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Reservas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .search-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .error {
+            color: red;
+            display: none;
+        }
+        .booking-info {
+            margin-top: 10px;
+        }
+        .download-btn {
+            background-color: #008CBA;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h2>Consulta de Reservas</h2>
+        <div class="form-group">
+            <input type="text" id="bookingCode" placeholder="Código da Reserva" required>
+        </div>
+        <div class="form-group">
+            <input type="text" id="lastName" placeholder="Sobrenome" required>
+        </div>
+        <button onclick="searchBooking()">Buscar Reserva</button>
+    </div>
+
+    <div id="result">
+        <h3>Detalhes da Reserva</h3>
+        <div class="booking-info">
+            <p><strong>Nome do Passageiro:</strong> <span id="passengerName"></span></p>
+            <p><strong>Data da Viagem:</strong> <span id="travelDate"></span></p>
+            <p><strong>Companhia Aérea:</strong> <span id="airline"></span></p>
+            <a id="ticketLink" target="_blank">
+                <button class="download-btn">Download do Bilhete</button>
+            </a>
+        </div>
+    </div>
+
+    <p class="error" id="error-message">Reserva não encontrada. Verifique os dados informados.</p>
+
+    <script>
+        let sheetData = null;
+
+        // Função para carregar os dados da planilha
+        function loadSheetData() {
+            // Substitua a URL abaixo pela URL pública da sua planilha em formato CSV
+            const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRiMt4T0cyQd99Aq_vP9DrvyiBVmT7dP2ajdalhiQlAgB53XjMk58EZ9lWaU92aKIGmi0EWXrNX7VO1/pub?gid=0&single=true&output=csv';
+            
+            fetch(sheetUrl)
+                .then(response => response.text())
+                .then(data => {
+                    sheetData = parseCSV(data);
+                })
+                .catch(error => console.error('Erro ao carregar dados:', error));
+        }
+
+        // Função para converter CSV em array de objetos
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',');
+            const result = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const obj = {};
+                const currentLine = lines[i].split(',');
+
+                for (let j = 0; j < headers.length; j++) {
+                    obj[headers[j].trim()] = currentLine[j].trim();
+                }
+                result.push(obj);
+            }
+
+            return result;
+        }
+
+        // Função para buscar reserva
+        function searchBooking() {
+            const bookingCode = document.getElementById('bookingCode').value.toUpperCase();
+            const lastName = document.getElementById('lastName').value.toUpperCase();
+
+            const booking = sheetData.find(row => 
+                row['Código da Reserva'].toUpperCase() === bookingCode && 
+                row['Sobrenome'].toUpperCase() === lastName
+            );
+
+            if (booking) {
+                document.getElementById('passengerName').textContent = booking['Nome Completo'];
+                document.getElementById('travelDate').textContent = booking['Data da Viagem'];
+                document.getElementById('airline').textContent = booking['Companhia Aérea'];
+                document.getElementById('ticketLink').href = booking['Link do Bilhete'];
+                
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('error-message').style.display = 'none';
+            } else {
+                document.getElementById('result').style.display = 'none';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        }
+
+        // Carregar dados quando a página iniciar
+        document.addEventListener('DOMContentLoaded', loadSheetData);
+    </script>
+</body>
+</html>
